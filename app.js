@@ -1,3 +1,5 @@
+
+const env =require("dotenv")
 const express = require("express")
 const connectToDb = require("./database/databaseConnection")
 const Blog = require("./model/blogModel")
@@ -5,11 +7,15 @@ const bcrypt = require('bcrypt')
 const app = express() 
 // const multer = require("./middleware/multerConfig").multer
 // const storage = require("./middleware/multerConfig").storage
-
+const isAuthenticated = require("./middleware/isAuthenticated")
+const cookieParser=require('cookie-parser')
+app.use(cookieParser())
 const {multer,storage} = require('./middleware/multerConfig') 
 const User = require("./model/userModel")
 const upload = multer({storage : storage})
+const jwt=require("jsonwebtoken")
 
+env.config();
 connectToDb()
 
 app.use(express.json())
@@ -26,7 +32,7 @@ app.get("/about",(req,res)=>{
     const name = "Manish Basnet"
     res.render("about.ejs",{name})
 })
-app.get("/createblog",(req,res)=>{
+app.get("/createblog",isAuthenticated,(req,res)=>{
     res.render("./blog/createBlog")
 })
 
@@ -109,6 +115,10 @@ app.post("/login",async (req,res)=>{
     if(!isMatched){
         res.send("Invalid password")
     }else{
+       const token=jwt.sign({userId:user[0]._id},process.env.SECRET,{
+            expiresIn:'20d'
+        })
+        res.cookie("token",token)
         res.send("logged in successfully")
     }
   }
@@ -121,7 +131,7 @@ app.listen(3000,()=>{
     console.log("Nodejs project has started at port" + 3000)
 })
 
-
+app.use(express.static("./public"))
 
 
 
